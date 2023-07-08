@@ -77,6 +77,7 @@
 #include <M5Unified.h>
 #include "BLEDevice.h"
 #include "BLEServer.h" // BLEServerCallbacksを使うために必要
+#include <BLE2902.h>
 
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
@@ -124,7 +125,10 @@ void setup()
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE);
+          BLECharacteristic::PROPERTY_WRITE |
+          BLECharacteristic::PROPERTY_NOTIFY |
+          BLECharacteristic::PROPERTY_INDICATE);
+  pCharacteristic->addDescriptor(new BLE2902());
   pCharacteristic->setValue("Hello World");
   pService->start();
 
