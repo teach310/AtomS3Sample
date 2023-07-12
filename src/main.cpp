@@ -92,18 +92,47 @@ static int8_t state = 0;
 #define STATE_CONNECTED 2
 #define STATE_DISCONNECTED 3
 
+static String text = "";
+static bool redraw = false;
+
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
   {
     state = STATE_CONNECTED;
     USBSerial.println("Connected");
+    redraw = true;
   };
 
   void onDisconnect(BLEServer *pServer)
   {
     state = STATE_DISCONNECTED;
     USBSerial.println("Disconnected");
+    redraw = true;
+  }
+};
+
+// Writeを受け取るCallback
+class MyCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    std::string value = pCharacteristic->getValue();
+
+    if (value.length() > 0)
+    {
+      USBSerial.println("*********");
+      USBSerial.print("New value: ");
+
+      for (int i = 0; i < value.length(); i++)
+        USBSerial.print(value[i]);
+
+      USBSerial.println();
+      USBSerial.println("*********");
+
+      text = String(value.c_str());
+      redraw = true;
+    }
   }
 };
 
@@ -130,6 +159,8 @@ void setup()
           BLECharacteristic::PROPERTY_INDICATE);
   pCharacteristic->addDescriptor(new BLE2902());
   pCharacteristic->setValue("Hello World");
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -139,6 +170,7 @@ void setup()
   BLEDevice::startAdvertising();
   USBSerial.println("Waiting a connection");
   state = STATE_IDLE;
+  redraw = true;
 }
 
 void drawIdle()
@@ -155,13 +187,16 @@ void drawConnected()
   M5.Display.startWrite();
   M5.Display.clear(BLACK);
   M5.Display.setCursor(0, 20);
-  M5.Display.printf("Connected");
+  M5.Display.println("Connected");
+  M5.Display.println(text);
   M5.Display.endWrite();
 }
 
 void loop()
 {
-  delay(1000);
+  if (!redraw)
+    return;
+  redraw = false;
   switch (state)
   {
   case STATE_CONNECTED:
