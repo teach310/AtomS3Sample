@@ -84,6 +84,7 @@
 
 #define SERVICE_UUID "068c47b7-fc04-4d47-975a-7952be1a576f"
 #define CHARACTERISTIC_UUID "e3737b3f-a08d-405b-b32d-35a8f6c64c5d"
+#define NOTIFY_CHARACTERISTIC_UUID "c9da2ce8-d119-40d5-90f7-ef24627e8193"
 
 static int8_t state = 0;
 
@@ -94,6 +95,8 @@ static int8_t state = 0;
 
 static String text = "";
 static bool redraw = false;
+
+BLECharacteristic *pNotifyCharacteristic;
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
@@ -161,6 +164,14 @@ void setup()
   pCharacteristic->setValue("Hello World");
   pCharacteristic->setCallbacks(new MyCallbacks());
 
+  // NotifyのためのCharacteristicを作成
+  // https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/examples/BLE_notify/BLE_notify.ino
+  pNotifyCharacteristic = pService->createCharacteristic(
+      NOTIFY_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_NOTIFY |
+          BLECharacteristic::PROPERTY_INDICATE);
+  pNotifyCharacteristic->addDescriptor(new BLE2902());
+
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -171,6 +182,17 @@ void setup()
   USBSerial.println("Waiting a connection");
   state = STATE_IDLE;
   redraw = true;
+}
+
+void onClickBtnA()
+{
+  USBSerial.println("onClickBtnA");
+  if (state == STATE_CONNECTED)
+  {
+    // ランダムな三桁の数字を送信
+    pNotifyCharacteristic->setValue(String(random(100, 999)).c_str());
+    pNotifyCharacteristic->notify();
+  }
 }
 
 void drawIdle()
@@ -194,6 +216,12 @@ void drawConnected()
 
 void loop()
 {
+  M5.update();
+  if (M5.BtnA.wasClicked())
+  {
+    onClickBtnA();
+  }
+
   if (!redraw)
     return;
   redraw = false;
