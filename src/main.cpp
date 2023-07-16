@@ -12,6 +12,26 @@
 #define SERVICE_UUID "068c47b7-fc04-4d47-975a-7952be1a576f"
 #define CHARACTERISTIC_UUID "e3737b3f-a08d-405b-b32d-35a8f6c64c5d"
 
+static String text = "";
+static bool redraw = false;
+
+class MyServerCallbacks : public BLEServerCallbacks
+{
+  void onConnect(BLEServer *pServer)
+  {
+    USBSerial.println("onConnect");
+    text = "Connected!";
+    redraw = true;
+  };
+
+  void onDisconnect(BLEServer *pServer)
+  {
+    USBSerial.println("onDisconnect");
+    text = "Disconnected!";
+    redraw = true;
+  }
+};
+
 void startService(BLEServer *pServer)
 {
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -44,12 +64,23 @@ void setup()
 
   BLEDevice::init("M5AtomS3 BLE Server");
   BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
   startService(pServer);
   startAdvertising();
 
-  M5.Display.println("Advertising!");
+  text = "Advertising!";
+  redraw = true;
 }
 
 void loop()
 {
+  if (!redraw)
+  {
+    return;
+  }
+  redraw = false;
+
+  M5.Display.clear();
+  M5.Display.setCursor(0, 0);
+  M5.Display.println(text);
 }
