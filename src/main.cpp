@@ -11,9 +11,13 @@
 
 #define SERVICE_UUID "068c47b7-fc04-4d47-975a-7952be1a576f"
 #define CHARACTERISTIC_UUID "e3737b3f-a08d-405b-b32d-35a8f6c64c5d"
+#define NOTIFY_CHARACTERISTIC_UUID "c9da2ce8-d119-40d5-90f7-ef24627e8193"
 
 static String text = "";
 static bool redraw = false;
+static bool connected = true;
+
+BLECharacteristic *pNotifyCharacteristic;
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
@@ -22,6 +26,7 @@ class MyServerCallbacks : public BLEServerCallbacks
     USBSerial.println("onConnect");
     text = "Connected!";
     redraw = true;
+    connected = true;
   };
 
   void onDisconnect(BLEServer *pServer)
@@ -29,6 +34,7 @@ class MyServerCallbacks : public BLEServerCallbacks
     USBSerial.println("onDisconnect");
     text = "Disconnected!";
     redraw = true;
+    connected = false;
   }
 };
 
@@ -60,6 +66,12 @@ void startService(BLEServer *pServer)
   pCharacteristic->setValue("Hello World");
   pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
 
+  // 権限を最小にするためにNotify用のCharacteristicはReadWrite用とは別に定義
+  pNotifyCharacteristic = pService->createCharacteristic(
+      NOTIFY_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_NOTIFY);
+  pNotifyCharacteristic->addDescriptor(new BLE2902());
+
   pService->start();
 }
 
@@ -70,6 +82,18 @@ void startAdvertising()
   pAdvertising->setScanResponse(true); // trueにしないと、Advertising DataにService UUIDが含まれない。
   // minIntervalはデフォルトの20でとくに問題なさそうなため、setMinPreferredは省略
   BLEDevice::startAdvertising();
+}
+
+void onClickBtnA()
+{
+  if (!connected)
+  {
+    return;
+  }
+
+  String value = "Notify Data " + String(random(100, 999));
+  pNotifyCharacteristic->setValue(value.c_str());
+  pNotifyCharacteristic->notify();
 }
 
 void setup()
@@ -91,6 +115,12 @@ void setup()
 
 void loop()
 {
+  M5.update();
+  if (M5.BtnA.wasClicked())
+  {
+    onClickBtnA();
+  }
+
   if (!redraw)
   {
     return;
