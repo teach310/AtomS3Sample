@@ -32,6 +32,22 @@ class MyServerCallbacks : public BLEServerCallbacks
   }
 };
 
+class MyCharacteristicCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    std::string value = pCharacteristic->getValue();
+
+    if (value.length() > 0)
+    {
+      USBSerial.print("onWrite: ");
+      USBSerial.println(value.c_str());
+      text = value.c_str();
+      redraw = true;
+    }
+  }
+};
+
 void startService(BLEServer *pServer)
 {
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -42,6 +58,7 @@ void startService(BLEServer *pServer)
           BLECharacteristic::PROPERTY_WRITE);
   pCharacteristic->addDescriptor(new BLE2902()); // Descriptorを定義しておかないとClient側でエラーログが出力される
   pCharacteristic->setValue("Hello World");
+  pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
 
   pService->start();
 }
