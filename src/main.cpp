@@ -76,68 +76,67 @@
 
 #include <M5Unified.h>
 #include "BLEDevice.h"
-#include "BLEServer.h" // BLEServerCallbacksを使うために必要
+#include "BLEServer.h"
 #include <BLE2902.h>
 
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
 
-#define SERVICE_UUID "068c47b7-fc04-4d47-975a-7952be1a576f"
-#define CHARACTERISTIC_UUID "e3737b3f-a08d-405b-b32d-35a8f6c64c5d"
+#define SERVICE_UUID "068C47B7-FC04-4D47-975A-7952BE1A576F"
+#define CHARACTERISTIC_UUID "E91E5ECB-A460-4DB1-97F7-F13D52222E15"
 #define NOTIFY_CHARACTERISTIC_UUID "c9da2ce8-d119-40d5-90f7-ef24627e8193"
 
-static int8_t state = 0;
+// static int8_t state = 0;
 
-#define STATE_IDLE 0
-#define STATE_CONNECTING 1
-#define STATE_CONNECTED 2
-#define STATE_DISCONNECTED 3
+// #define STATE_IDLE 0
+// #define STATE_CONNECTING 1
+// #define STATE_CONNECTED 2
+// #define STATE_DISCONNECTED 3
 
-static String text = "";
-static bool redraw = false;
+// static String text = "";
+// static bool redraw = false;
 
-BLECharacteristic *pNotifyCharacteristic;
+// BLECharacteristic *pNotifyCharacteristic;
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
   {
-    state = STATE_CONNECTED;
+    // state = STATE_CONNECTED;
     USBSerial.println("Connected");
-    redraw = true;
+    // redraw = true;
   };
 
   void onDisconnect(BLEServer *pServer)
   {
-    state = STATE_DISCONNECTED;
+    // state = STATE_DISCONNECTED;
     USBSerial.println("Disconnected");
-    redraw = true;
+    // redraw = true;
   }
 };
 
-// Writeを受け取るCallback
-class MyCallbacks : public BLECharacteristicCallbacks
-{
-  void onWrite(BLECharacteristic *pCharacteristic)
-  {
-    std::string value = pCharacteristic->getValue();
+// class MyCharacteristicCallbacks : public BLECharacteristicCallbacks
+// {
+//   void onWrite(BLECharacteristic *pCharacteristic)
+//   {
+//     std::string value = pCharacteristic->getValue();
 
-    if (value.length() > 0)
-    {
-      USBSerial.println("*********");
-      USBSerial.print("New value: ");
+//     if (value.length() > 0)
+//     {
+//       USBSerial.println("*********");
+//       USBSerial.print("New value: ");
 
-      for (int i = 0; i < value.length(); i++)
-        USBSerial.print(value[i]);
+//       for (int i = 0; i < value.length(); i++)
+//         USBSerial.print(value[i]);
 
-      USBSerial.println();
-      USBSerial.println("*********");
+//       USBSerial.println();
+//       USBSerial.println("*********");
 
-      text = String(value.c_str());
-      redraw = true;
-    }
-  }
-};
+//       // text = String(value.c_str());
+//       // redraw = true;
+//     }
+//   }
+// };
 
 void setup()
 {
@@ -146,73 +145,59 @@ void setup()
   USBSerial.begin(115200);
   M5.Display.setTextSize(2);
 
-  BLEDevice::init("M5AtomS3 Test BLE Server");
+  BLEDevice::init("M5AtomS3");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
-  // Serviceはキャラクタリスティックの入れ物
   BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Characteristicはセンサーの値や状態を表す
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE |
-          BLECharacteristic::PROPERTY_NOTIFY |
-          BLECharacteristic::PROPERTY_INDICATE);
+          BLECharacteristic::PROPERTY_NOTIFY);
   pCharacteristic->addDescriptor(new BLE2902());
-  pCharacteristic->setValue("Hello World");
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  // NotifyのためのCharacteristicを作成
-  // https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/examples/BLE_notify/BLE_notify.ino
-  pNotifyCharacteristic = pService->createCharacteristic(
-      NOTIFY_CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_NOTIFY |
-          BLECharacteristic::PROPERTY_INDICATE);
-  pNotifyCharacteristic->addDescriptor(new BLE2902());
+  // pCharacteristic->setValue("Hello World");
+  // pCharacteristic->setCallbacks(new MyCallbacks());
 
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true); // これをtrueにしないと、Advertising DataにService UUIDが含まれない。
-  // minIntervalはデフォルトの20でとくに問題なさそうなため、setMinPreferredは省略
+  pAdvertising->setScanResponse(true);
   BLEDevice::startAdvertising();
   USBSerial.println("Waiting a connection");
-  state = STATE_IDLE;
-  redraw = true;
+  // state = STATE_IDLE;
+  // redraw = true;
 }
 
 void onClickBtnA()
 {
   USBSerial.println("onClickBtnA");
-  if (state == STATE_CONNECTED)
-  {
-    // ランダムな三桁の数字を送信
-    pNotifyCharacteristic->setValue(String(random(100, 999)).c_str());
-    pNotifyCharacteristic->notify();
-  }
+  // if (state == STATE_CONNECTED)
+  // {
+  //   // ランダムな三桁の数字を送信
+  //   pNotifyCharacteristic->setValue(String(random(100, 999)).c_str());
+  //   pNotifyCharacteristic->notify();
+  // }
 }
 
-void drawIdle()
-{
-  M5.Display.startWrite();
-  M5.Display.clear(BLACK);
-  M5.Display.setCursor(0, 20);
-  M5.Display.printf("Waiting a connection");
-  M5.Display.endWrite();
-}
+// void drawIdle()
+// {
+//   M5.Display.startWrite();
+//   M5.Display.clear(BLACK);
+//   M5.Display.setCursor(0, 20);
+//   M5.Display.printf("Waiting a connection");
+//   M5.Display.endWrite();
+// }
 
-void drawConnected()
-{
-  M5.Display.startWrite();
-  M5.Display.clear(BLACK);
-  M5.Display.setCursor(0, 20);
-  M5.Display.println("Connected");
-  M5.Display.println(text);
-  M5.Display.endWrite();
-}
+// void drawConnected()
+// {
+//   M5.Display.startWrite();
+//   M5.Display.clear(BLACK);
+//   M5.Display.setCursor(0, 20);
+//   M5.Display.println("Connected");
+//   M5.Display.println(text);
+//   M5.Display.endWrite();
+// }
 
 void loop()
 {
@@ -222,16 +207,16 @@ void loop()
     onClickBtnA();
   }
 
-  if (!redraw)
-    return;
-  redraw = false;
-  switch (state)
-  {
-  case STATE_CONNECTED:
-    drawConnected();
-    break;
-  default:
-    drawIdle();
-    break;
-  }
+  // if (!redraw)
+  //   return;
+  // redraw = false;
+  // switch (state)
+  // {
+  // case STATE_CONNECTED:
+  //   drawConnected();
+  //   break;
+  // default:
+  //   drawIdle();
+  //   break;
+  // }
 }
