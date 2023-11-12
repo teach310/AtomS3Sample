@@ -77,14 +77,6 @@ std::string getButtonInformation(int buttonId, bool isPressed)
   return buff;
 }
 
-// uint8_t* getButtonInformationAsPointer(int buttonId, bool isPressed)
-// {
-//   uint8_t buff[2];
-//   buff[0] = buttonId;
-//   buff[1] = (isPressed ? 0x80 : 0x00);
-//   return buff;
-// }
-
 void getButtonInformation(uint8_t buff[2], int buttonId, bool isPressed)
 {
   buff[0] = buttonId;
