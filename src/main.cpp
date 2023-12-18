@@ -17,17 +17,29 @@ void setup()
       ;
   }
   USBSerial.println("Start App\n\n");
-  lox.startRangeContinuous();
+  lox.startRangeContinuous(200);
 }
 
 void loop()
 {
-  M5.Display.startWrite();
-  auto distance = lox.readRange();
-  M5.Display.clear(BLACK);
-  M5.Display.setCursor(0, 20);
-  M5.Display.printf("Distance\nmm: %d\n", distance);
-  M5.Display.endWrite();
-  USBSerial.println("Distance in mm: " + String(distance));
-  delay(200);
+
+  if (lox.isRangeComplete())
+  {
+    M5.Display.startWrite();
+    auto distance = lox.readRange();
+    M5.Display.clear(BLACK);
+    M5.Display.setCursor(0, 20);
+    M5.Display.printf("Distance\nmm: %d\n", distance);
+    M5.Display.endWrite();
+    USBSerial.println("Distance in mm: " + String(distance));
+    // 時間を出力
+    auto time_data = millis();
+    auto seconds = time_data / 1000;
+    auto milliseconds = time_data % 1000;
+    USBSerial.println("Time: " + String(seconds) + "." + String(milliseconds));
+  } else {
+    // USBSerial.println("Range not complete");
+  }
+
+  // delay(200);
 }
